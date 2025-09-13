@@ -1,27 +1,21 @@
 import sqlite3
 import functools
 import logging
+from datetime import datetime  # Added import
 
-# Configure logging to display query information
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')  # Removed asctime to use custom datetime
 
 def log_queries(func):
     """
-    A decorator that logs the SQL query before executing the decorated function.
-    
-    Args:
-        func: The function to be decorated (e.g., fetch_all_users).
-    
-    Returns:
-        wrapper: A function that logs the query and calls the original function.
+    A decorator that logs the SQL query with a custom timestamp before executing the decorated function.
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Extract the query from the arguments (assuming query is the first argument)
         query = args[0] if args else "No query provided"
-        # Log the query
-        logging.info(f"Executing query: {query}")
-        # Call the original function with its arguments and return the result
+        # Use datetime for custom timestamp
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        logging.info(f"{timestamp} - Executing query: {query}")
         return func(*args, **kwargs)
     return wrapper
 
@@ -29,12 +23,6 @@ def log_queries(func):
 def fetch_all_users(query):
     """
     Fetches all users from the database using the provided SQL query.
-    
-    Args:
-        query: The SQL query to execute.
-    
-    Returns:
-        List of tuples containing the query results.
     """
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
@@ -43,7 +31,6 @@ def fetch_all_users(query):
     conn.close()
     return results
 
-# Example usage
 if __name__ == "__main__":
     users = fetch_all_users(query="SELECT * FROM users")
     print(users)
