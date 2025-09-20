@@ -78,13 +78,15 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         ]
 
     def test_public_repos(self):
-        """Test that public_repos returns the expected repositories."""
+        """Test GithubOrgClient.public_repos returns expected results based on
+        fixtures.
+        """
         test_client = GithubOrgClient("google")
         repos = test_client.public_repos()
         self.assertEqual(repos, self.expected_repos)
 
     def test_public_repos_with_license(self):
-        """Test that public_repos with license filter returns expected repos."""
+        """Test GithubOrgClient.public_repos with apache-2.0 license filter."""
         test_client = GithubOrgClient("google")
         repos = test_client.public_repos("apache-2.0")
         self.assertEqual(repos, self.apache2_repos)
