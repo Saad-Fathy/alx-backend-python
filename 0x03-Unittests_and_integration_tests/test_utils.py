@@ -77,15 +77,11 @@ class TestMemoize(unittest.TestCase):
         Test that memoize decorator caches results and only calls underlying method once
         """
         class TestClass:
-            """Test class with memoized property"""
-
-            def a_method(self) -> int:
-                """Method that returns 42"""
+            def a_method(self):
                 return 42
 
             @memoize
-            def a_property(self) -> int:
-                """Memoized property that calls a_method"""
+            def a_property(self):
                 return self.a_method()
 
         # Patch the a_method to track calls
