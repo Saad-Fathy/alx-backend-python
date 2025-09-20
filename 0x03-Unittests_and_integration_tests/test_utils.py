@@ -6,7 +6,7 @@ Unit tests for utility functions in utils.py
 import unittest
 from unittest.mock import patch, MagicMock
 from parameterized import parameterized
-from utils import access_nested_map, get_json
+from utils import access_nested_map, get_json, memoize
 
 
 class TestAccessNestedMap(unittest.TestCase):
@@ -65,3 +65,45 @@ class TestGetJson(unittest.TestCase):
         
         # Verify the mock was called exactly once with the correct URL
         mock_requests.assert_called_once_with(test_url)
+
+
+class TestMemoize(unittest.TestCase):
+    """
+    Test class for the memoize decorator
+    """
+
+    def test_memoize(self) -> None:
+        """
+        Test that memoize decorator caches results and only calls underlying method once
+        """
+        class TestClass:
+            """Test class with memoized property"""
+
+            def a_method(self) -> int:
+                """Method that returns 42"""
+                return 42
+
+            @memoize
+            def a_property(self) -> int:
+                """Memoized property that calls a_method"""
+                return self.a_method()
+
+        # Patch the a_method to track calls
+        with patch.object(TestClass, 'a_method') as mock_a_method:
+            mock_a_method.return_value = 42
+            
+            # Create test instance
+            test_instance = TestClass()
+            
+            # First call - should call a_method once
+            result1 = test_instance.a_property()
+            self.assertEqual(result1, 42)
+            mock_a_method.assert_called_once()
+            
+            # Reset the call count for second test
+            mock_a_method.reset_mock()
+            
+            # Second call - should return cached result, not call a_method
+            result2 = test_instance.a_property()
+            self.assertEqual(result2, 42)
+            mock_a_method.assert_not_called()
