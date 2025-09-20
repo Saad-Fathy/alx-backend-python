@@ -7,7 +7,7 @@ from client import GithubOrgClient
 
 
 class TestGithubOrgClient(unittest.TestCase):
-    """Test class for GithubOrgClient unit tests."""
+    """Test class for GithubOrgClient."""
 
     @patch.object(GithubOrgClient, "org", new_callable=PropertyMock)
     def test_public_repos_url(self, mock_org: PropertyMock) -> None:
@@ -32,11 +32,9 @@ class TestGithubOrgClient(unittest.TestCase):
     def test_public_repos(
         self,
         mock_public_repos_url: PropertyMock,
-        mock_get_json: PropertyMock,
+        mock_get_json,
     ) -> None:
-        """
-        Test that public_repos returns expected repository list and calls mocks once
-        """
+        """Test that public_repos returns expected repository list."""
         # Configure mocks with known values
         mock_public_repos_url.return_value = "https://api.github.com/repos"
         mock_repos_payload = [
