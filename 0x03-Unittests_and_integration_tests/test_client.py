@@ -29,14 +29,14 @@ class TestGithubOrgClient(unittest.TestCase):
 
     @patch('client.get_json')
     @patch.object(GithubOrgClient, '_public_repos_url', new_callable=PropertyMock)
-    def test_public_repos(self) -> None:
+    def test_public_repos(
+        self,
+        mock_public_repos_url: PropertyMock,
+        mock_get_json: PropertyMock,
+    ) -> None:
         """
         Test that public_repos returns expected repository list and calls mocks once
         """
-        # Get the mock objects (automatically injected by patch decorators)
-        mock_public_repos_url = self._public_repos_url
-        mock_get_json = self.get_json
-
         # Configure mocks with known values
         mock_public_repos_url.return_value = "https://api.github.com/repos"
         mock_repos_payload = [
