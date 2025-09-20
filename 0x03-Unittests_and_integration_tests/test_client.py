@@ -3,8 +3,9 @@
 
 import unittest
 from unittest.mock import patch, PropertyMock
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
+from fixtures import TEST_PAYLOAD
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -51,12 +52,47 @@ class TestGithubOrgClient(unittest.TestCase):
         ({"license": {"key": "my_license"}}, "my_license", True),
         ({"license": {"key": "other_license"}}, "my_license", False),
     ])
-    def test_has_license(self, repo: dict, license_key: str, expected: bool) -> None:
+    def test_has_license(self, repo, license_key, expected) -> None:
         """Test that has_license returns expected result for given repository and
         license key.
         """
         result = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(result, expected)
+
+
+@parameterized_class(
+    ("org_payload", "repos_payload", "expected_repos", "apache2_repos"),
+    TEST_PAYLOAD
+)
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """Integration test class for GithubOrgClient using fixtures."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up the mock for requests.get with fixture data."""
+        cls.get_patcher = patch('client.requests.get')
+        cls.mock_requests = cls.get_patcher.start()
+        cls.mock_requests.return_value.json.side_effect = [
+            cls.org_payload,
+            cls.repos_payload,
+        ]
+
+    def test_public_repos(self):
+        """Test that public_repos returns the expected repositories."""
+        test_client = GithubOrgClient("google")
+        repos = test_client.public_repos()
+        self.assertEqual(repos, self.expected_repos)
+
+    def test_public_repos_with_license(self):
+        """Test that public_repos with license filter returns expected repos."""
+        test_client = GithubOrgClient("google")
+        repos = test_client.public_repos("apache-2.0")
+        self.assertEqual(repos, self.apache2_repos)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up by stopping the patcher."""
+        cls.get_patcher.stop()
 
 
 if __name__ == "__main__":
