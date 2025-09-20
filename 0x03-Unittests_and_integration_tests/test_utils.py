@@ -4,8 +4,9 @@ Unit tests for utility functions in utils.py
 """
 
 import unittest
+from unittest.mock import patch, MagicMock
 from parameterized import parameterized
-from utils import access_nested_map
+from utils import access_nested_map, get_json
 
 
 class TestAccessNestedMap(unittest.TestCase):
@@ -33,8 +34,34 @@ class TestAccessNestedMap(unittest.TestCase):
         """
         Test that access_nested_map raises KeyError with expected message
         """
-        with self.assertRaises(KeyError, msg=f"Expected KeyError with message: {expected_message}"):
-            access_nested_map(nested_map, path)
         with self.assertRaises(KeyError) as context:
             access_nested_map(nested_map, path)
         self.assertEqual(str(context.exception), expected_message)
+
+
+class TestGetJson(unittest.TestCase):
+    """
+    Test class for the get_json utility function
+    """
+
+    @parameterized.expand([
+        ("http://example.com", {"payload": True}),
+        ("http://holberton.io", {"payload": False}),
+    ])
+    @patch('utils.requests.get')
+    def test_get(self, test_url: str, test_payload: dict, 
+                 mock_requests: MagicMock) -> None:
+        """
+        Test that get_json returns expected result and mocks HTTP call correctly
+        """
+        # Configure the mock to return the test payload when .json() is called
+        mock_requests.return_value.json.return_value = test_payload
+        
+        # Call the function under test
+        result = get_json(test_url)
+        
+        # Verify the result matches expected payload
+        self.assertEqual(result, test_payload)
+        
+        # Verify the mock was called exactly once with the correct URL
+        mock_requests.assert_called_once_with(test_url)
