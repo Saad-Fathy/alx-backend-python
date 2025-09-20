@@ -16,7 +16,7 @@ class TestGithubOrgClient(unittest.TestCase):
         """Test that _public_repos_url returns the expected repos_url from org
         payload.
         """
-        known_payload = {"repos_url": "https://api.github.com/orgs/test_org/repos"}
+        known_payload = {"repos_url": "http://test/repos"}
         mock_org.return_value = known_payload
 
         client = GithubOrgClient("test_org")
@@ -31,7 +31,7 @@ class TestGithubOrgClient(unittest.TestCase):
         mock_public_repos_url = self._public_repos_url
         mock_get_json = self.get_json
 
-        mock_public_repos_url.return_value = "https://api.github.com/repos"
+        mock_public_repos_url.return_value = "http://test/repos"
         mock_repos_payload = [
             {"name": "repo1", "license": {"key": "mit"}},
             {"name": "repo2", "license": {"key": "apache-2.0"}},
@@ -53,8 +53,8 @@ class TestGithubOrgClient(unittest.TestCase):
         ({"license": {"key": "other_license"}}, "my_license", False),
     ])
     def test_has_license(self, repo, license_key, expected) -> None:
-        """Test that has_license returns expected result for given repository and
-        license key.
+        """Test that has_license returns expected result for given repository
+        and license key.
         """
         result = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(result, expected)
@@ -70,7 +70,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up the mock for requests.get with fixture data."""
-        cls.get_patcher = patch('client.requests.get')
+        cls.get_patcher = patch('utils.requests.get')
         cls.mock_requests = cls.get_patcher.start()
         cls.mock_requests.return_value.json.side_effect = [
             cls.org_payload,
