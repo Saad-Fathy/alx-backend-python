@@ -1,66 +1,115 @@
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'django_filters',
-    'Django-Middleware-0x03.chats',
-]
+import logging
+from datetime import datetime, timedelta
+from collections import defaultdict
+from django.utils.deprecation import MiddlewareMixin
+from django.http import HttpResponseForbidden, HttpResponse
 
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'Django-Middleware-0x03.chats.middleware.RequestLoggingMiddleware',
-    'Django-Middleware-0x03.chats.middleware.RestrictAccessByTimeMiddleware',
-]
+# Configure logger to write to requests.log
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.FileHandler('requests.log'),
+    ]
+)
+logger = logging.getLogger(__name__)
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-}
+class RequestLoggingMiddleware(MiddlewareMixin):
+    """
+    Middleware to log each user's requests to requests.log.
+    Logs format: {datetime.now()} - User: {user} - Path: {request.path}
+    """
+    def __init__(self, get_response):
+        """Initialize the middleware with the get_response callable."""
+        self.get_response = get_response
 
-from datetime import timedelta
+    def __call__(self, request):
+        """
+        Log the request with timestamp, user, and path.
+        """
+        user = request.user if request.user.is_authenticated else 'Anonymous'
+        logger.info(f"{datetime.now()} - User: {user} - Path: {request.path}")
+        response = self.get_response(request)
+        return response
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': False,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-}
+class RestrictAccessByTimeMiddleware(MiddlewareMixin):
+    """
+    Middleware to restrict access to the messaging app outside 9:00 AM to 6:00 PM.
+    Returns 403 Forbidden if the current time is outside these hours.
+    """
+    def __init__(self, get_response):
+        """Initialize the middleware with the get_response callable."""
+        self.get_response = get_response
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+    def __call__(self, request):
+        """
+        Check the current server time and deny access outside 9:00 AM to 6:00 PM.
+        """
+        current_hour = datetime.now().hour
+        if not (9 <= current_hour < 18):
+            return HttpResponseForbidden("Access denied: The messaging app is only available between 9:00 AM and 6:00 PM.")
+        response = self.get_response(request)
+        return response
 
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+class OffensiveLanguageMiddleware(MiddlewareMixin):
+    """
+    Middleware to limit the number of chat messages (POST requests to /api/messages/) 
+    to 5 per minute per IP address. Returns 429 Too Many Requests if exceeded.
+    """
+    def __init__(self, get_response):
+        """Initialize the middleware with the get_response callable and request tracking."""
+        self.get_response = get_response
+        self.request_counts = defaultdict(list)  # Store timestamps of POST requests per IP
 
-SECRET_KEY = 'your-secret-key-here'
-DEBUG = False
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    def __call__(self, request):
+        """
+        Check if the request is a POST to /api/messages/ and enforce rate limit.
+        """
+        if request.method == 'POST' and request.path == '/api/messages/':
+            ip_address = request.META.get('REMOTE_ADDR', 'unknown')
+            current_time = datetime.now()
+            time_window = current_time - timedelta(minutes=1)
+
+            # Remove requests older than 1 minute
+            self.request_counts[ip_address] = [
+                timestamp for timestamp in self.request_counts[ip_address]
+                if timestamp > time_window
+            ]
+
+            # Check if limit (5 messages per minute) is exceeded
+            if len(self.request_counts[ip_address]) >= 5:
+                return HttpResponse(
+                    "Rate limit exceeded: Maximum 5 messages per minute allowed.",
+                    status=429
+                )
+
+            # Record the current request
+            self.request_counts[ip_address].append(current_time)
+
+        response = self.get_response(request)
+        return response
+
+class RolePermissionMiddleware(MiddlewareMixin):
+    """
+    Middleware to restrict access to /api/conversations/ and /api/messages/ to users
+    with admin (is_staff) or moderator (in 'Moderator' group) roles.
+    Returns 403 Forbidden if the user lacks these roles.
+    """
+    def __init__(self, get_response):
+        """Initialize the middleware with the get_response callable."""
+        self.get_response = get_response
+
+    def __call__(self, request):
+        """
+        Check if the user has admin or moderator role for /api/conversations/ or /api/messages/.
+        """
+        if request.path.startswith(('/api/conversations/', '/api/messages/')):
+            if not request.user.is_authenticated:
+                # AuthenticationMiddleware will handle unauthenticated users (401)
+                return self.get_response(request)
+            if not (request.user.is_staff or request.user.groups.filter(name='Moderator').exists()):
+                return HttpResponseForbidden(
+                    "Access denied: Only admins or moderators can access this endpoint."
+                )
+        response = self.get_response(request)
+        return response
