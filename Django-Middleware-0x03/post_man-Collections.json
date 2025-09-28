@@ -49,7 +49,95 @@
       ]
     },
     {
-      "name": "Create Conversation (User1)",
+      "name": "Obtain JWT Token (User2 - Moderator)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"user2\", \"password\": \"password123\"}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/token/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "token", ""]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains access token', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.access).to.be.a('string');",
+              "    pm.collectionVariables.set('user2_token', jsonData.access);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Conversation (User2 - Moderator)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{user2_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"participants\": [2, 1]}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/conversations/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "conversations", ""]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201 for moderator', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Conversation created with participants', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.participants).to.include.members([2, 1]);",
+              "    pm.collectionVariables.set('conversation_id', jsonData.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Conversation (User1 - Regular)",
       "request": {
         "method": "POST",
         "header": [
@@ -81,13 +169,9 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 201', function () {",
-              "    pm.response.to.have.status(201);",
-              "});",
-              "pm.test('Conversation created with participants', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.participants).to.include.members([1, 2]);",
-              "    pm.collectionVariables.set('conversation_id', jsonData.id);",
+              "pm.test('Status code is 403 for regular user', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.text()).to.include('Access denied: Only admins or moderators can access this endpoint.');",
               "});"
             ]
           }
@@ -95,7 +179,7 @@
       ]
     },
     {
-      "name": "Send Message (User1)",
+      "name": "Send Message (User1 - Regular)",
       "request": {
         "method": "POST",
         "header": [
@@ -127,13 +211,9 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 201', function () {",
-              "    pm.response.to.have.status(201);",
-              "});",
-              "pm.test('Message created with correct content', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.content).to.equal('Hello, this is a test message!');",
-              "    pm.expect(jsonData.conversation).to.equal(pm.collectionVariables.get('conversation_id'));",
+              "pm.test('Status code is 403 for regular user', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.text()).to.include('Access denied: Only admins or moderators can access this endpoint.');",
               "});"
             ]
           }
@@ -141,7 +221,7 @@
       ]
     },
     {
-      "name": "Fetch Conversations (User1)",
+      "name": "Fetch Conversations (User1 - Regular)",
       "request": {
         "method": "GET",
         "header": [
@@ -165,13 +245,9 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Response contains conversations', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.results).to.be.an('array');",
-              "    pm.expect(jsonData.results.some(conv => conv.id == pm.collectionVariables.get('conversation_id'))).to.be.true;",
+              "pm.test('Status code is 403 for regular user', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.text()).to.include('Access denied: Only admins or moderators can access this endpoint.');",
               "});"
             ]
           }
@@ -179,7 +255,7 @@
       ]
     },
     {
-      "name": "Fetch Messages with Pagination (User1)",
+      "name": "Fetch Messages with Pagination (User1 - Regular)",
       "request": {
         "method": "GET",
         "header": [
@@ -209,14 +285,9 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Response contains paginated messages', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.results).to.be.an('array');",
-              "    pm.expect(jsonData.results.length).to.be.at.most(20);",
-              "    pm.expect(jsonData.count).to.exist;",
+              "pm.test('Status code is 403 for regular user', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.text()).to.include('Access denied: Only admins or moderators can access this endpoint.');",
               "});"
             ]
           }
@@ -224,7 +295,7 @@
       ]
     },
     {
-      "name": "Fetch Messages with Filter (User1)",
+      "name": "Fetch Messages with Filter (User1 - Regular)",
       "request": {
         "method": "GET",
         "header": [
@@ -254,13 +325,9 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "pm.test('Response contains filtered messages', function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.results).to.be.an('array');",
-              "    pm.expect(jsonData.results.every(msg => msg.conversation == pm.collectionVariables.get('conversation_id'))).to.be.true;",
+              "pm.test('Status code is 403 for regular user', function () {",
+              "    pm.response.to.have.status(403);",
+              "    pm.expect(pm.response.text()).to.include('Access denied: Only admins or moderators can access this endpoint.');",
               "});"
             ]
           }
@@ -296,7 +363,7 @@
       ]
     },
     {
-      "name": "Non-Participant Access (User3)",
+      "name": "Non-Participant Access (User3 - Admin)",
       "request": {
         "method": "GET",
         "header": [
@@ -326,8 +393,8 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 403 Forbidden', function () {",
-              "    pm.response.to.have.status(403);",
+              "pm.test('Status code is 200 for admin', function () {",
+              "    pm.response.to.have.status(200);",
               "});"
             ]
           }
@@ -335,7 +402,7 @@
       ]
     },
     {
-      "name": "Obtain JWT Token (User3 for Non-Participant Test)",
+      "name": "Obtain JWT Token (User3 - Admin)",
       "request": {
         "method": "POST",
         "header": [
@@ -380,6 +447,10 @@
   "variable": [
     {
       "key": "user1_token",
+      "value": ""
+    },
+    {
+      "key": "user2_token",
       "value": ""
     },
     {

@@ -89,7 +89,7 @@ class OffensiveLanguageMiddleware(MiddlewareMixin):
         response = self.get_response(request)
         return response
 
-class RolePermissionMiddleware(MiddlewareMixin):
+class RolepermissionMiddleware(MiddlewareMixin):
     """
     Middleware to restrict access to /api/conversations/ and /api/messages/ to users
     with admin (is_staff) or moderator (in 'Moderator' group) roles.
