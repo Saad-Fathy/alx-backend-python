@@ -7,8 +7,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
-    'django_filters',  # For filtering
-    'messaging_app.chats',  # Custom app for chats
+    'django_filters',
+    'Django-Middleware-0x03.chats',
 ]
 
 MIDDLEWARE = [
@@ -19,6 +19,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'Django-Middleware-0x03.chats.middleware.RequestLoggingMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -44,7 +45,6 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
-# Database configuration (example using SQLite)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -52,16 +52,14 @@ DATABASES = {
     }
 }
 
-# Security settings for production
-SECURE_SSL_REDIRECT = True  # Ensure HTTPS in production
+SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
-SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# Other required settings
-SECRET_KEY = 'your-secret-key-here'  # Replace with a secure key
-DEBUG = False  # Set to False in production
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']  # Update for production
+SECRET_KEY = 'your-secret-key-here'
+DEBUG = False
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
