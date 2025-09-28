@@ -27,3 +27,16 @@ urlpatterns = [
          views.MessageViewSet.as_view({'get': 'by_conversation'}),
          name='messages-by-conversation'),
 ]
+
+from django.urls import path
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+from messaging_app.chats.auth import CustomTokenObtainPairView
+
+urlpatterns = [
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Additional endpoints for messages/conversations can be added here
+]
