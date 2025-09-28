@@ -7,7 +7,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework_simplejwt',
-    'django_filters',  # Added for filtering
+    'django_filters',  # For filtering
     'messaging_app.chats',  # Custom app for chats
 ]
 
@@ -28,8 +28,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    'DEFAULT_PAGINATION_CLASS': 'messaging_app.chats.pagination.CustomPagination',  # Added for pagination
-    'PAGE_SIZE': 20,  # Default page size
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 from datetime import timedelta
