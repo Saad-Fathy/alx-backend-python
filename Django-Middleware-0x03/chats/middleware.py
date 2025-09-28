@@ -1,31 +1,16 @@
-import logging
-from datetime import datetime
-from django.utils.deprecation import MiddlewareMixin
+2. Restrict Chat Access by time
+mandatory
+Objective: implement a middleware that restricts access to the messaging up during certain hours of the day
 
-# Configure logger to write to requests.log
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s',
-    handlers=[
-        logging.FileHandler('requests.log'),
-    ]
-)
-logger = logging.getLogger(__name__)
+Instructions:
 
-class RequestLoggingMiddleware(MiddlewareMixin):
-    """
-    Middleware to log each user's requests to requests.log.
-    Logs format: {datetime.now()} - User: {user} - Path: {request.path}
-    """
-    def __init__(self, get_response):
-        """Initialize the middleware with the get_response callable."""
-        self.get_response = get_response
+Create a middleware class RestrictAccessByTimeMiddleware with two methods, __init__and__call__. that check the current server time and deny access by returning an error 403 Forbidden
 
-    def __call__(self, request):
-        """
-        Log the request with timestamp, user, and path.
-        """
-        user = request.user if request.user.is_authenticated else 'Anonymous'
-        logger.info(f"{datetime.now()} - User: {user} - Path: {request.path}")
-        response = self.get_response(request)
-        return response
+if a user accesses the chat outside 9PM and 6PM.
+Update the settings.py with the middleware.
+
+Repo:
+
+GitHub repository: alx-backend-python
+Directory: Django-Middleware-0x03
+File: Django-Middleware-0x03/chats/middleware.py
